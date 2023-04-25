@@ -96,6 +96,8 @@ https://github.com/XIU2/CloudflareSpeedTest
 	flag.BoolVar(&task.TestAll, "allip", false, "测速全部 IP")
 
 	flag.BoolVar(&printVersion, "v", false, "打印程序版本")
+
+	flag.BoolVar(&task.UpdatedToAliyun, "ali", false, "上传到阿里云dns")
 	flag.Usage = func() { fmt.Print(help) }
 	flag.Parse()
 
@@ -131,6 +133,10 @@ func main() {
 	speedData := task.TestDownloadSpeed(pingData)
 	utils.ExportCsv(speedData) // 输出文件
 	speedData.Print()          // 打印结果
+
+	if task.UpdatedToAliyun {
+		speedData.UpdatedAliyun()
+	}
 
 	if versionNew != "" {
 		fmt.Printf("\n*** 发现新版本 [%s]！请前往 [https://github.com/XIU2/CloudflareSpeedTest] 更新！ ***\n", versionNew)

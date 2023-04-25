@@ -2,7 +2,12 @@ package utils
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	alidns20150109 "github.com/alibabacloud-go/alidns-20150109/v4/client"
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
+	"github.com/alibabacloud-go/tea/tea"
 	"log"
 	"net"
 	"os"
@@ -165,5 +170,194 @@ func (s DownloadSpeedSet) Print() {
 	}
 	if !noOutput() {
 		fmt.Printf("\n完整测速结果已写入 %v 文件，可使用记事本/表格软件查看。\n", Output)
+	}
+}
+
+func CreateClient(accessKeyId *string, accessKeySecret *string) (_result *alidns20150109.Client, _err error) {
+	config := &openapi.Config{
+		// 必填，您的 AccessKey ID
+		AccessKeyId: accessKeyId,
+		// 必填，您的 AccessKey Secret
+		AccessKeySecret: accessKeySecret,
+	}
+	// 访问的域名
+	config.Endpoint = tea.String("alidns.cn-hangzhou.aliyuncs.com")
+	_result = &alidns20150109.Client{}
+	_result, _err = alidns20150109.NewClient(config)
+	return _result, _err
+}
+
+type Aliyun struct {
+	AccessKeyId     string   `json:"accessKeyId"`
+	AccessKeySecret string   `json:"accessKeySecret"`
+	Domain          string   `json:"domain"`
+	Hosts           []string `json:"hosts"`
+}
+
+func _main(args []*string, ips []string) (_err error) {
+	// 读取json
+	f, err := os.Open("aliyun.json")
+	if err != nil {
+		fmt.Println("open file failed, err:", err)
+		return
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+
+		}
+	}(f)
+
+	var aliyun Aliyun
+	err = json.NewDecoder(f).Decode(&aliyun)
+	if err != nil {
+		fmt.Println("json decode failed, err:", err)
+		return
+	}
+
+	client, _err := CreateClient(tea.String(aliyun.AccessKeyId), tea.String(aliyun.AccessKeySecret))
+	if _err != nil {
+		return _err
+	}
+
+	var domains []*alidns20150109.OperateBatchDomainRequestDomainRecordInfo
+
+	for _, host := range aliyun.Hosts {
+		domains = append(domains, &alidns20150109.OperateBatchDomainRequestDomainRecordInfo{
+			Domain: tea.String(aliyun.Domain),
+			Type:   tea.String("A"),
+			Value:  tea.String(""),
+			Rr:     tea.String(host),
+		})
+	}
+
+	fmt.Printf("del records: %+v", domains)
+
+	operateBatchDomainRequest := &alidns20150109.OperateBatchDomainRequest{
+		Type:             tea.String("RR_DEL"),
+		DomainRecordInfo: domains,
+	}
+	runtime := &util.RuntimeOptions{}
+	tryErr := func() (_e error) {
+		defer func() {
+			if r := tea.Recover(recover()); r != nil {
+				_e = r
+			}
+		}()
+		// 复制代码运行请自行打印 API 的返回值
+		resp, _err := client.OperateBatchDomainWithOptions(operateBatchDomainRequest, runtime)
+		if _err != nil {
+			return _err
+		}
+		resp_string, _err := util.AssertAsString(resp)
+		if _err != nil {
+			return _err
+		}
+		_, _err = fmt.Println(resp_string)
+
+		return nil
+	}()
+
+	if tryErr != nil {
+		var error = &tea.SDKError{}
+		if _t, ok := tryErr.(*tea.SDKError); ok {
+			error = _t
+		} else {
+			error.Message = tea.String(tryErr.Error())
+		}
+		// 如有需要，请打印 error
+		_, _err = util.AssertAsString(error.Message)
+		if _err != nil {
+			return _err
+		}
+	}
+
+	time.Sleep(30 * time.Second)
+
+	domains = nil
+
+	for _, ip := range ips {
+		for _, host := range aliyun.Hosts {
+			domains = append(domains, &alidns20150109.OperateBatchDomainRequestDomainRecordInfo{
+				Domain: tea.String(aliyun.Domain),
+				Type:   tea.String("A"),
+				Value:  tea.String(ip),
+				Rr:     tea.String(host),
+			})
+		}
+	}
+
+	fmt.Printf("add records: %+v", domains)
+
+	operateBatchDomainRequest = &alidns20150109.OperateBatchDomainRequest{
+		Type:             tea.String("RR_ADD"),
+		DomainRecordInfo: domains,
+	}
+	runtime = &util.RuntimeOptions{}
+	tryErr = func() (_e error) {
+		defer func() {
+			if r := tea.Recover(recover()); r != nil {
+				_e = r
+			}
+		}()
+		// 复制代码运行请自行打印 API 的返回值
+		resp, _err := client.OperateBatchDomainWithOptions(operateBatchDomainRequest, runtime)
+		if _err != nil {
+			return _err
+		}
+		resp_string, _err := util.AssertAsString(resp)
+		if _err != nil {
+			return _err
+		}
+		_, _err = fmt.Println(resp_string)
+
+		return nil
+	}()
+
+	if tryErr != nil {
+		var error = &tea.SDKError{}
+		if _t, ok := tryErr.(*tea.SDKError); ok {
+			error = _t
+		} else {
+			error.Message = tea.String(tryErr.Error())
+		}
+		// 如有需要，请打印 error
+		_, _err = util.AssertAsString(error.Message)
+		if _err != nil {
+			return _err
+		}
+	}
+
+	return _err
+}
+
+func (s DownloadSpeedSet) UpdatedAliyun() {
+	if NoPrintResult() {
+		return
+	}
+	if len(s) <= 0 { // IP数组长度(IP数量) 大于 0 时继续
+		fmt.Println("\n[信息] 完整测速结果 IP 数量为 0，跳过输出结果。")
+		return
+	}
+	dateString := convertToString(s) // 转为多维数组 [][]String
+	if len(dateString) < PrintNum {  // 如果IP数组长度(IP数量) 小于  打印次数，则次数改为IP数量
+		PrintNum = len(dateString)
+	}
+	// 如果要输出的 IP 中包含 IPv6，就return
+	for i := 0; i < len(dateString); i++ {
+		if len(dateString[i][0]) > 15 {
+			fmt.Println("\n[信息] 不支持 IPv6，跳过输出结果。")
+			return
+		}
+	}
+
+	var ips []string
+	for _, v := range dateString {
+		ips = append(ips, v[0])
+	}
+
+	err := _main(tea.StringSlice(os.Args[1:]), ips)
+	if err != nil {
+		panic(err)
 	}
 }

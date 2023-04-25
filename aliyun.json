@@ -1,0 +1,8 @@
+{
+  "accessKeyId": "",
+  "accessKeySecret": "",
+  "domain": "example.com",
+  "hosts": [
+    "www"
+  ]
+}
