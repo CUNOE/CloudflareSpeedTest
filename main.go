@@ -135,7 +135,7 @@ func main() {
 	speedData.Print()          // 打印结果
 
 	if task.UpdatedToAliyun != "false" {
-		speedData.UpdatedAliyun()
+		speedData.UpdatedAliyun(task.UpdatedToAliyun)
 	}
 
 	if versionNew != "" {
