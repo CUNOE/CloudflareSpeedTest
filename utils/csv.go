@@ -194,9 +194,9 @@ type Aliyun struct {
 	Hosts           []string `json:"hosts"`
 }
 
-func _main(args []*string, ips []string) (_err error) {
+func _main(args []*string, ips []string, path string) (_err error) {
 	// 读取json
-	f, err := os.Open("aliyun.json")
+	f, err := os.Open(path)
 	if err != nil {
 		fmt.Println("open file failed, err:", err)
 		return
@@ -331,7 +331,7 @@ func _main(args []*string, ips []string) (_err error) {
 	return _err
 }
 
-func (s DownloadSpeedSet) UpdatedAliyun() {
+func (s DownloadSpeedSet) UpdatedAliyun(path string) {
 	if NoPrintResult() {
 		return
 	}
@@ -356,7 +356,7 @@ func (s DownloadSpeedSet) UpdatedAliyun() {
 		ips = append(ips, v[0])
 	}
 
-	err := _main(tea.StringSlice(os.Args[1:]), ips)
+	err := _main(tea.StringSlice(os.Args[1:]), ips, path)
 	if err != nil {
 		panic(err)
 	}

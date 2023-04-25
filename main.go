@@ -97,7 +97,7 @@ https://github.com/XIU2/CloudflareSpeedTest
 
 	flag.BoolVar(&printVersion, "v", false, "打印程序版本")
 
-	flag.BoolVar(&task.UpdatedToAliyun, "ali", false, "上传到阿里云dns")
+	flag.StringVar(&task.UpdatedToAliyun, "ali", "false", "上传到阿里云dns")
 	flag.Usage = func() { fmt.Print(help) }
 	flag.Parse()
 
@@ -134,7 +134,7 @@ func main() {
 	utils.ExportCsv(speedData) // 输出文件
 	speedData.Print()          // 打印结果
 
-	if task.UpdatedToAliyun {
+	if task.UpdatedToAliyun != "false" {
 		speedData.UpdatedAliyun()
 	}
 

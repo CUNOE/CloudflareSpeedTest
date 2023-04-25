@@ -32,7 +32,7 @@ var (
 	TestCount = defaultTestNum
 	MinSpeed  = defaultMinSpeed
 
-	UpdatedToAliyun = false
+	UpdatedToAliyun = "false"
 )
 
 func checkDownloadDefault() {
